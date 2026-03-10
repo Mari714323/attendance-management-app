@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -32,9 +32,36 @@ class Attendance(db.Model):
 
 # --- ここまでモデル定義 ---
 
+app.secret_key = 'secretkey1234567' # セッションの暗号化に必要（適当な文字列でOK）
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    return render_template('index.html', username=session.get('username'), role=session.get('role'))
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        user = User.query.filter_by(username=username, password=password).first()
+        
+        if user:
+            session['user_id'] = user.id
+            session['username'] = user.username
+            session['role'] = user.role
+            return redirect(url_for('index'))
+        else:
+            flash('ユーザー名またはパスワードが正しくありません')
+            
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
 
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
