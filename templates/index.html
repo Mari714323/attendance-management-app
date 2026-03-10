@@ -17,31 +17,69 @@
         </div>
     </nav>
 
-    <div class="container">
-        {% if role == 'admin' %}
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card border-primary shadow-sm">
-                    <div class="card-header bg-primary text-white">管理者メニュー</div>
-                    <div class="card-body">
-                        <div class="btn-group">
-                            <a href="#" class="btn btn-outline-primary">従業員一覧・給与計算</a>
-                            <a href="#" class="btn btn-outline-primary">勤務データエクスポート</a>
-                        </div>
+<div class="container">
+    {% if role == 'admin' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white">管理者メニュー</div>
+                <div class="card-body">
+                    <div class="btn-group">
+                        <a href="#" class="btn btn-outline-primary">従業員一覧・給与計算</a>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    {% endif %}
+
+    <div class="mb-4">
+        {% if attendance %}
+            <div class="row text-center">
+                <div class="col">
+                    <p class="text-muted mb-1">出勤時刻</p>
+                    <h5 class="fw-bold">
+                        {{ attendance.start_time.strftime('%H:%M') if attendance.start_time else '--:--' }}
+                    </h5>
+                </div>
+                <div class="col">
+                    <p class="text-muted mb-1">退勤時刻</p>
+                    <h5 class="fw-bold">
+                        {{ attendance.end_time.strftime('%H:%M') if attendance.end_time else '--:--' }}
+                    </h5>
+                </div>
+            </div>
+        {% else %}
+            <p class="text-muted text-center">本日の打刻記録はありません</p>
         {% endif %}
+    </div>
+
+    <div class="row">
 
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <div class="card shadow-sm">
                     <div class="card-body text-center">
                         <h4 class="mb-4">本日の打刻</h4>
+                        
+                        {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for message in messages %}
+                            <div class="alert alert-info py-2">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                        {% endwith %}
+
                         <div class="d-grid gap-3">
-                            <button class="btn btn-success btn-lg py-3">出勤</button>
-                            <button class="btn btn-danger btn-lg py-3">退勤</button>
+                            <form action="{{ url_for('punch') }}" method="POST">
+                                <input type="hidden" name="action" value="in">
+                                <button type="submit" class="btn btn-success btn-lg py-3 w-100 mb-2">出勤</button>
+                            </form>
+                            
+                            <form action="{{ url_for('punch') }}" method="POST">
+                                <input type="hidden" name="action" value="out">
+                                <button type="submit" class="btn btn-danger btn-lg py-3 w-100">退勤</button>
+                            </form>
                         </div>
                     </div>
                 </div>

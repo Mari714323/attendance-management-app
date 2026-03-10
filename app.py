@@ -38,7 +38,60 @@ app.secret_key = 'secretkey1234567' # セッションの暗号化に必要（適
 def index():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', username=session.get('username'), role=session.get('role'))
+    
+    user_id = session['user_id']
+    today = datetime.now().date()
+    
+    # 今日の勤怠データをDBから取得してテンプレートに渡す
+    attendance = Attendance.query.filter_by(user_id=user_id, date=today).first()
+    
+    # app.py
+    return render_template('index.html', 
+                       username=session.get('username'), 
+                       role=session.get('role'), 
+                       attendance=attendance) # ←ここが重要！
+
+@app.route('/punch', methods=['POST'])
+def punch():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    action = request.form.get('action') # 'in' または 'out'
+    user_id = session['user_id']
+    today = datetime.now().date()
+    now = datetime.now()
+    today = now.date() # ローカル（日本）の日付
+
+    # 今日の勤怠データを取得
+    attendance = Attendance.query.filter_by(user_id=user_id, date=today).first()
+    
+    # --- ここを追加 ---
+    print(f"DEBUG: user_id={user_id}, today={today}")
+    print(f"DEBUG: attendance={attendance}")
+    if attendance:
+        print(f"DEBUG: start_time={attendance.start_time}")
+    # ------------------
+
+    if action == 'in':
+        if not attendance:
+            # 日付（date）を明示的に「今日の日付」で指定して作成
+            new_attendance = Attendance(user_id=user_id, date=today, start_time=now)
+            db.session.add(new_attendance)
+        else:
+            flash('既に出勤済みです')
+            
+    elif action == 'out':
+        if attendance and not attendance.end_time:
+            # 退勤時間を更新
+            attendance.end_time = now
+            flash('退勤しました！お疲れ様でした！')
+        elif not attendance:
+            flash('出勤記録がありません')
+        else:
+            flash('既に退勤済みです')
+
+    db.session.commit()
+    return redirect(url_for('index'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
