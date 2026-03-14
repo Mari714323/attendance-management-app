@@ -171,6 +171,105 @@ def admin_dashboard():
     
     return render_template('admin.html', users=users)
 
+@app.route('/admin/attendance/<int:user_id>')
+def admin_user_attendance(user_id):
+    # 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 対象のユーザーを取得（いなければ404エラーを返す）
+    user = User.query.get_or_404(user_id)
+    
+    # そのユーザーの全勤怠データを新しい順に取得
+    attendances = Attendance.query.filter_by(user_id=user_id).order_by(Attendance.date.desc()).all()
+    
+    return render_template('admin_attendance.html', user=user, attendances=attendances)
+
+# app.py に追加
+@app.route('/admin/attendance/<int:user_id>/add', methods=['POST'])
+def admin_add_attendance(user_id):
+    # 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # フォームから送られてきたデータを取得
+    date_str = request.form.get('date')       # 例: "2026-03-14"
+    start_str = request.form.get('start_time') # 例: "09:00"
+    end_str = request.form.get('end_time')     # 例: "18:00"
+    
+    try:
+        # 文字列を Python の日付・時刻オブジェクトに変換
+        date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+        start_time = datetime.strptime(f"{date_str} {start_str}", '%Y-%m-%d %H:%M')
+        
+        end_time = None
+        if end_str:
+            end_time = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
+        
+        # 新しい勤怠レコードを作成して保存
+        new_record = Attendance(
+            user_id=user_id,
+            date=date_obj,
+            start_time=start_time,
+            end_time=end_time
+        )
+        db.session.add(new_record)
+        db.session.commit()
+        flash('勤怠データを手動で追加しました')
+        
+    except ValueError:
+        flash('入力された日時の形式が正しくありません')
+        
+    # 従業員の勤怠一覧ページに戻る
+    return redirect(url_for('admin_user_attendance', user_id=user_id))
+
+# app.py に追加
+@app.route('/admin/attendance/edit/<int:attendance_id>', methods=['GET'])
+def admin_edit_attendance(attendance_id):
+    # 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 修正対象の勤怠データを1件取得
+    record = Attendance.query.get_or_404(attendance_id)
+    # そのデータの持ち主（従業員）の情報も取得（画面表示用）
+    user = User.query.get(record.user_id)
+    
+    return render_template('admin_edit.html', record=record, user=user)
+
+# app.py に追加
+@app.route('/admin/attendance/update/<int:attendance_id>', methods=['POST'])
+def admin_update_attendance(attendance_id):
+    # 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 修正対象のデータを取得
+    record = Attendance.query.get_or_404(attendance_id)
+    
+    # フォームから送られてきた新しい値を取得
+    date_str = request.form.get('date')
+    start_str = request.form.get('start_time')
+    end_str = request.form.get('end_time')
+    
+    try:
+        # 既存のレコードの値を上書きする
+        record.date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        record.start_time = datetime.strptime(f"{date_str} {start_str}", '%Y-%m-%d %H:%M')
+        
+        if end_str:
+            record.end_time = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
+        else:
+            record.end_time = None # 退勤が空の場合はNone（未打刻状態）にする
+            
+        db.session.commit()
+        flash('勤怠データを更新しました')
+    except ValueError:
+        flash('日時の形式が正しくありません')
+        
+    # 修正が終わったら、その従業員の勤怠一覧ページに戻る
+    return redirect(url_for('admin_user_attendance', user_id=record.user_id))
+
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
     with app.app_context():

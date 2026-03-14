@@ -29,6 +29,7 @@
                                     <th>設定時給</th>
                                     <th>今月の合計時間</th>
                                     <th>概算給与</th>
+                                    <th>操作</th>
                                 </tr>
                             </thead>
                                 <tbody>
@@ -40,6 +41,9 @@
                                         <td>{{ "{:,}".format(user.hourly_rate) }}円</td>
                                         <td>{{ stats.total_hours }} 時間</td>
                                         <td>{{ "{:,}".format(stats.total_salary) }} 円</td>
+                                        <td>
+                                            <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">勤怠管理</a>
+                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

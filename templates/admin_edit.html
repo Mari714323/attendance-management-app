@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>勤怠データの編集 - 勤怠管理システム</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary mb-4">
+        <div class="container">
+            <span class="navbar-brand">{{ user.username }} さんの勤怠修正</span>
+            <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-outline-light btn-sm">戻る</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">勤怠データの編集</h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('admin_update_attendance', attendance_id=record.id) }}" method="POST">
+                            <div class="mb-3">
+                                <label class="form-label">日付</label>
+                                <input type="date" name="date" class="form-control" value="{{ record.date.isoformat() }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">出勤時間</label>
+                                <input type="time" name="start_time" class="form-control" value="{{ record.start_time.strftime('%H:%M') if record.start_time else '' }}" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">退勤時間</label>
+                                <input type="time" name="end_time" class="form-control" value="{{ record.end_time.strftime('%H:%M') if record.end_time else '' }}">
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">更新する</button>
+                                <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-secondary">キャンセル</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
