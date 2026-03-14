@@ -53,9 +53,6 @@
             <p class="text-muted text-center">本日の打刻記録はありません</p>
         {% endif %}
     </div>
-
-    <div class="row">
-
         <div class="row">
             <div class="col-md-6 offset-md-3">
                 <div class="card shadow-sm">
@@ -82,6 +79,40 @@
                             </form>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-md-10 offset-md-1">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">勤務履歴</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>日付</th>
+                                <th>出勤</th>
+                                <th>退勤</th>
+                                <th>勤務時間</th>
+                                <th>備考</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for record in history %}
+                            <tr>
+                                <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
+                                <td>{{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}</td>
+                                <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
+                                <td>{{ record.get_duration() }} 時間</td>
+                                <td>{{ record.note if record.note else '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

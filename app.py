@@ -29,6 +29,15 @@ class Attendance(db.Model):
     end_time = db.Column(db.DateTime)
     break_minutes = db.Column(db.Integer, default=0)
     note = db.Column(db.Text)
+    def get_duration(self):
+        if self.start_time and self.end_time:
+            # 退勤時間から出勤時間を引く
+            duration = self.end_time - self.start_time
+            # 秒単位で合計時間を出し、時間に変換（3600秒 = 1時間）
+            hours = duration.total_seconds() / 3600
+            # 小数点第2位までで丸める（例：8.50）
+            return f"{hours:.2f}"
+        return "0.00"
 
 # --- ここまでモデル定義 ---
 
@@ -42,14 +51,18 @@ def index():
     user_id = session['user_id']
     today = datetime.now().date()
     
-    # 今日の勤怠データをDBから取得してテンプレートに渡す
+    # 1. 今日の打刻データを取得（今のボタン表示用）
     attendance = Attendance.query.filter_by(user_id=user_id, date=today).first()
     
-    # app.py
+    # 2. 過去の全履歴を取得（履歴リスト表示用）
+    # .order_by(Attendance.date.desc()) を付けることで、新しい日付順に並べます
+    history = Attendance.query.filter_by(user_id=user_id).order_by(Attendance.date.desc()).all()
+    
     return render_template('index.html', 
-                       username=session.get('username'), 
-                       role=session.get('role'), 
-                       attendance=attendance) # ←ここが重要！
+                           username=session.get('username'), 
+                           role=session.get('role'), 
+                           attendance=attendance,
+                           history=history) # historyをHTMLに渡す
 
 @app.route('/punch', methods=['POST'])
 def punch():
