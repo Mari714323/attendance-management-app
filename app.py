@@ -19,6 +19,31 @@ class User(db.Model):
     password = db.Column(db.String(100), nullable=False) # 本来はハッシュ化が必要
     role = db.Column(db.String(20), nullable=False)     # 'admin' または 'staff'
     hourly_rate = db.Column(db.Integer, default=1000)   # アルバイト用の時給
+    def get_monthly_stats(self):
+        from datetime import datetime
+        now = datetime.now()
+        # 1. 今月の1日の日付を作成
+        first_day = datetime(now.year, now.month, 1).date()
+        
+        # 2. このユーザーの、今月の勤怠データをすべて取得
+        monthly_records = Attendance.query.filter(
+            Attendance.user_id == self.id,
+            Attendance.date >= first_day
+        ).all()
+        
+        total_hours = 0
+        for record in monthly_records:
+            if record.start_time and record.end_time:
+                # 勤務時間を計算して秒で足していく
+                duration = record.end_time - record.start_time
+                total_hours += duration.total_seconds() / 3600
+        
+        # 3. 合計時間と、時給を掛けた概算給与を返す
+        total_salary = total_hours * self.hourly_rate
+        return {
+            'total_hours': f"{total_hours:.2f}",
+            'total_salary': int(total_salary) # 給与は整数で返す
+        }
 
 # 2. 勤怠記録
 class Attendance(db.Model):
@@ -128,6 +153,23 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/admin')
+def admin_dashboard():
+    # 1. ログインチェック
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    # 2. 管理者権限チェック（管理者じゃなければトップへ戻す）
+    if session.get('role') != 'admin':
+        flash('このページにアクセスする権限がありません')
+        return redirect(url_for('index'))
+    
+    # 3. 全ユーザー（従業員）のリストを取得
+    # 管理者(admin)以外のユーザーをすべて取得します
+    users = User.query.filter(User.role != 'admin').all()
+    
+    return render_template('admin.html', users=users)
 
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
