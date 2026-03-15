@@ -20,7 +20,18 @@
                     <div class="card-header bg-white">
                         <h5 class="mb-0">従業員一覧・給与計算（今月）</h5>
                     </div>
+
                     <div class="card-body">
+                        {% with messages = get_flashed_messages() %}
+                            {% if messages %}
+                                {% for message in messages %}
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
                         <table class="table table-hover">
                             <thead>
                                 <tr>
@@ -38,7 +49,15 @@
                                     <tr>
                                         <td>{{ user.id }}</td>
                                         <td>{{ user.username }}</td>
-                                        <td>{{ "{:,}".format(user.hourly_rate) }}円</td>
+                                        <td>
+                                            <form action="{{ url_for('admin_update_rate', user_id=user.id) }}" method="POST" class="d-flex align-items-center">
+                                            <div class="input-group input-group-sm" style="width: 150px;">
+                                                <input type="number" name="hourly_rate" class="form-control" value="{{ user.hourly_rate }}" min="0" required>
+                                                <span class="input-group-text">円</span>
+                                                <button class="btn btn-outline-success" type="submit">更新</button>
+                                            </div>
+                                            </form>
+                                        </td>
                                         <td>{{ stats.total_hours }} 時間</td>
                                         <td>{{ "{:,}".format(stats.total_salary) }} 円</td>
                                         <td>

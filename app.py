@@ -302,6 +302,25 @@ def admin_delete_attendance(attendance_id):
     # 元の従業員の勤怠一覧ページに戻る
     return redirect(url_for('admin_user_attendance', user_id=user_id))
 
+@app.route('/admin/update_rate/<int:user_id>', methods=['POST'])
+def admin_update_rate(user_id):
+    # 1. 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 2. フォームから送られてきた新しい時給を取得
+    new_rate = request.form.get('hourly_rate')
+    
+    if new_rate:
+        # 3. 対象のユーザーを取得して時給を書き換え
+        user = User.query.get_or_404(user_id)
+        user.hourly_rate = int(new_rate)
+        db.session.commit()
+        flash(f'{user.username} さんの時給を {new_rate} 円に更新しました')
+    
+    # 4. 管理者パネルへ戻る
+    return redirect(url_for('admin_dashboard'))
+
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
     with app.app_context():
