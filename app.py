@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+import csv
+import io
+from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 
@@ -320,6 +322,57 @@ def admin_update_rate(user_id):
     
     # 4. 管理者パネルへ戻る
     return redirect(url_for('admin_dashboard'))
+
+# app.py の管理者用ルート付近に追加
+# app.py の admin_export_csv を修正
+@app.route('/admin/export_csv')
+def admin_export_csv():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+
+    # URLパラメータから月を取得 (例: "2026-03")
+    target_month = request.args.get('month')
+
+    query = Attendance.query
+
+    # 月の指定がある場合はフィルタリング
+    if target_month:
+        try:
+            year, month = map(int, target_month.split('-'))
+            # 指定された月の1日と、翌月の1日を計算して範囲を絞る
+            from datetime import date
+            start_date = date(year, month, 1)
+            if month == 12:
+                end_date = date(year + 1, 1, 1)
+            else:
+                end_date = date(year, month + 1, 1)
+            
+            query = query.filter(Attendance.date >= start_date, Attendance.date < end_date)
+        except ValueError:
+            pass # 形式が正しくない場合は全件出す
+
+    attendances = query.order_by(Attendance.date.desc()).all()
+
+    si = io.StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['ユーザー名', '日付', '出勤時刻', '退勤時刻', '休憩(分)', '勤務時間'])
+
+    for record in attendances:
+        user = User.query.get(record.user_id)
+        cw.writerow([
+            user.username,
+            record.date.strftime('%Y/%m/%d'),
+            record.start_time.strftime('%H:%M') if record.start_time else '',
+            record.end_time.strftime('%H:%M') if record.end_time else '',
+            record.break_minutes,
+            record.get_duration()
+        ])
+
+    filename = f"attendance_{target_month if target_month else 'all'}.csv"
+    output = make_response(si.getvalue().encode('utf-8-sig'))
+    output.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    output.headers["Content-type"] = "text/csv"
+    return output
 
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
