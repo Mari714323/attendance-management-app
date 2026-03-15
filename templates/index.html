@@ -98,6 +98,7 @@
                                 <th>日付</th>
                                 <th>出勤</th>
                                 <th>退勤</th>
+                                <th>休憩</th>
                                 <th>勤務時間</th>
                                 <th>備考</th>
                             </tr>
@@ -108,6 +109,7 @@
                                 <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
                                 <td>{{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}</td>
                                 <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
+                                <td>{{ record.break_minutes }} 分</td>
                                 <td>{{ record.get_duration() }} 時間</td>
                                 <td>{{ record.note if record.note else '' }}</td>
                             </tr>

@@ -34,9 +34,10 @@ class User(db.Model):
         total_hours = 0
         for record in monthly_records:
             if record.start_time and record.end_time:
-                # 勤務時間を計算して秒で足していく
                 duration = record.end_time - record.start_time
-                total_hours += duration.total_seconds() / 3600
+                # 休憩時間を引いた秒数を加算していく
+                actual_seconds = duration.total_seconds() - (record.break_minutes * 60)
+                total_hours += max(0, actual_seconds) / 3600    
         
         # 3. 合計時間と、時給を掛けた概算給与を返す
         total_salary = total_hours * self.hourly_rate
@@ -58,9 +59,12 @@ class Attendance(db.Model):
         if self.start_time and self.end_time:
             # 退勤時間から出勤時間を引く
             duration = self.end_time - self.start_time
-            # 秒単位で合計時間を出し、時間に変換（3600秒 = 1時間）
-            hours = duration.total_seconds() / 3600
-            # 小数点第2位までで丸める（例：8.50）
+            # 合計秒数から休憩時間（分 × 60秒）を引く
+            total_seconds = duration.total_seconds() - (self.break_minutes * 60)
+            # 万が一マイナスにならないよう調整
+            total_seconds = max(0, total_seconds)
+            # 時間に変換
+            hours = total_seconds / 3600
             return f"{hours:.2f}"
         return "0.00"
 
@@ -196,6 +200,8 @@ def admin_add_attendance(user_id):
     date_str = request.form.get('date')       # 例: "2026-03-14"
     start_str = request.form.get('start_time') # 例: "09:00"
     end_str = request.form.get('end_time')     # 例: "18:00"
+    # 休憩時間を取得（整数に変換、入力がなければ0）
+    break_minutes = int(request.form.get('break_minutes', 0))
     
     try:
         # 文字列を Python の日付・時刻オブジェクトに変換
@@ -211,7 +217,8 @@ def admin_add_attendance(user_id):
             user_id=user_id,
             date=date_obj,
             start_time=start_time,
-            end_time=end_time
+            end_time=end_time,
+            break_minutes=break_minutes
         )
         db.session.add(new_record)
         db.session.commit()
@@ -251,6 +258,8 @@ def admin_update_attendance(attendance_id):
     date_str = request.form.get('date')
     start_str = request.form.get('start_time')
     end_str = request.form.get('end_time')
+    # 休憩時間を取得
+    break_minutes = int(request.form.get('break_minutes', 0))
     
     try:
         # 既存のレコードの値を上書きする
@@ -261,6 +270,9 @@ def admin_update_attendance(attendance_id):
             record.end_time = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
         else:
             record.end_time = None # 退勤が空の場合はNone（未打刻状態）にする
+
+        # 休憩時間を更新
+        record.break_minutes = break_minutes
             
         db.session.commit()
         flash('勤怠データを更新しました')
