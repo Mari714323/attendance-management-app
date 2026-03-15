@@ -282,6 +282,26 @@ def admin_update_attendance(attendance_id):
     # 修正が終わったら、その従業員の勤怠一覧ページに戻る
     return redirect(url_for('admin_user_attendance', user_id=record.user_id))
 
+# app.py に追加
+@app.route('/admin/attendance/delete/<int:attendance_id>', methods=['POST'])
+def admin_delete_attendance(attendance_id):
+    # 1. 管理者権限チェック
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 2. 削除対象のデータを取得
+    record = Attendance.query.get_or_404(attendance_id)
+    user_id = record.user_id # 削除後に戻るページを特定するために保存
+    
+    # 3. データベースから削除
+    db.session.delete(record)
+    db.session.commit()
+    
+    flash('勤怠データを削除しました')
+    
+    # 元の従業員の勤怠一覧ページに戻る
+    return redirect(url_for('admin_user_attendance', user_id=user_id))
+
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
     with app.app_context():

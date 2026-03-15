@@ -44,6 +44,9 @@
                             <td>{{ record.get_duration() }} 時間</td>
                             <td>
                                 <a href="{{ url_for('admin_edit_attendance', attendance_id=record.id) }}" class="btn btn-sm btn-outline-secondary">編集</a>
+                                <form action="{{ url_for('admin_delete_attendance', attendance_id=record.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('このデータを本当に削除しますか？');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">削除</button>
+                                </form>
                             </td>
                         </tr>
                         {% else %}
