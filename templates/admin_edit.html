@@ -38,6 +38,10 @@
                                 <label class="form-label">休憩時間（分）</label>
                                 <input type="number" name="break_minutes" class="form-control" value="{{ record.break_minutes }}" min="0">
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label">備考</label>
+                                <textarea name="note" class="form-control" rows="3">{{ record.note if record.note else '' }}</textarea>
+                            </div>
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">更新する</button>
                                 <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-secondary">キャンセル</a>

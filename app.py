@@ -204,6 +204,8 @@ def admin_add_attendance(user_id):
     end_str = request.form.get('end_time')     # 例: "18:00"
     # 休憩時間を取得（整数に変換、入力がなければ0）
     break_minutes = int(request.form.get('break_minutes', 0))
+    # 備考を取得（空の場合は空文字にする）
+    note = request.form.get('note', '')
     
     try:
         # 文字列を Python の日付・時刻オブジェクトに変換
@@ -220,7 +222,8 @@ def admin_add_attendance(user_id):
             date=date_obj,
             start_time=start_time,
             end_time=end_time,
-            break_minutes=break_minutes
+            break_minutes=break_minutes,
+            note=note
         )
         db.session.add(new_record)
         db.session.commit()
@@ -262,6 +265,8 @@ def admin_update_attendance(attendance_id):
     end_str = request.form.get('end_time')
     # 休憩時間を取得
     break_minutes = int(request.form.get('break_minutes', 0))
+    # 備考を取得
+    note = request.form.get('note', '')
     
     try:
         # 既存のレコードの値を上書きする
@@ -275,6 +280,8 @@ def admin_update_attendance(attendance_id):
 
         # 休憩時間を更新
         record.break_minutes = break_minutes
+        # 備考を更新
+        record.note = note
             
         db.session.commit()
         flash('勤怠データを更新しました')
@@ -378,4 +385,4 @@ if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, port=5001)
