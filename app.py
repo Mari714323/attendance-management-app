@@ -69,6 +69,18 @@ class Attendance(db.Model):
             hours = total_seconds / 3600
             return f"{hours:.2f}"
         return "0.00"
+    def get_status(self):
+        status_list = []
+        
+        # 出勤時間が 09:00:00 より遅い場合は「遅刻」
+        if self.start_time and self.start_time.time() > datetime.strptime("09:00:00", "%H:%M:%S").time():
+            status_list.append("遅刻")
+            
+        # 退勤時間が 18:00:00 より早い場合は「早退」
+        if self.end_time and self.end_time.time() < datetime.strptime("18:00:00", "%H:%M:%S").time():
+            status_list.append("早退")
+            
+        return status_list
 
 # --- ここまでモデル定義 ---
 

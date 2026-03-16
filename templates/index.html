@@ -116,7 +116,12 @@
                             {% for record in history %}
                             <tr>
                                 <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
-                                <td>{{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}</td>
+                                <td>
+                                    {{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}
+                                    {% for status in record.get_status() %}
+                                        <span class="badge {{ 'bg-danger' if status == '遅刻' else 'bg-warning text-dark' }}">{{ status }}</span>
+                                    {% endfor %}
+                                </td>
                                 <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
                                 <td>{{ record.break_minutes }} 分</td>
                                 <td>{{ record.get_duration() }} 時間</td>

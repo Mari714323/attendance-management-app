@@ -49,7 +49,17 @@
                         {% for record in attendances %}
                         <tr>
                             <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
-                            <td>{{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}</td>
+                            <td>
+                                {{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}
+                                {# 遅刻・早退の判定を表示 #}
+                                {% for status in record.get_status() %}
+                                    {% if status == '遅刻' %}
+                                        <span class="badge bg-danger">遅刻</span>
+                                    {% elif status == '早退' %}
+                                        <span class="badge bg-warning text-dark">早退</span>
+                                    {% endif %}
+                                {% endfor %}
+                            </td>
                             <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
                             <td>{{ record.break_minutes }} 分</td>
                             <td>{{ record.get_duration() }} 時間</td>
