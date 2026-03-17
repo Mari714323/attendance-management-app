@@ -47,6 +47,49 @@ class User(db.Model):
             'total_hours': f"{total_hours:.2f}",
             'total_salary': int(total_salary) # 給与は整数で返す
         }
+    def get_monthly_stats(self):
+        from datetime import datetime
+        now = datetime.now()
+        first_day = datetime(now.year, now.month, 1).date()
+        
+        monthly_records = Attendance.query.filter(
+            Attendance.user_id == self.id,
+            Attendance.date >= first_day
+        ).all()
+        
+        total_hours = 0
+        total_overtime_hours = 0
+        total_night_hours = 0
+        
+        for record in monthly_records:
+            if record.start_time and record.end_time:
+                # 基本の労働時間
+                duration = float(record.get_duration())
+                total_hours += duration
+                
+                # 深夜労働時間と残業時間を集計
+                total_night_hours += record.get_night_shift_hours()
+                total_overtime_hours += record.get_overtime_hours()
+        
+        # --- 給与計算ロジック ---
+        # 1. 基本給（全労働時間 × 時給）
+        base_pay = total_hours * self.hourly_rate
+        
+        # 2. 残業割増分（残業時間 × 時給 × 0.25）
+        overtime_pay = total_overtime_hours * self.hourly_rate * 0.25
+        
+        # 3. 深夜割増分（深夜時間 × 時給 × 0.25）
+        night_pay = total_night_hours * self.hourly_rate * 0.25
+        
+        # 合計金額
+        total_salary = base_pay + overtime_pay + night_pay
+        
+        return {
+            'total_hours': f"{total_hours:.2f}",
+            'overtime_hours': f"{total_overtime_hours:.2f}",
+            'night_hours': f"{total_night_hours:.2f}",
+            'total_salary': int(total_salary)
+        }
 
 # 2. 勤怠記録
 class Attendance(db.Model):
@@ -81,6 +124,32 @@ class Attendance(db.Model):
             status_list.append("早退")
             
         return status_list
+    # app.py の Attendance クラス内に追加
+    def get_night_shift_hours(self):
+        """深夜労働時間（22:00 - 05:00）を計算する"""
+        if not (self.start_time and self.end_time):
+            return 0.0
+        
+        total_night_seconds = 0
+        current = self.start_time
+        # 1分刻みでチェックするロジック（複雑な跨ぎにも対応）
+        import datetime
+        while current < self.end_time:
+            # 22時以降、または5時より前かを判定
+            if current.hour >= 22 or current.hour < 5:
+                total_night_seconds += 60
+            current += datetime.timedelta(minutes=1)
+            
+        # 休憩時間は通常の労働時間から引かれるため、ここでは純粋な滞在時間中の深夜枠を算出
+        # 実際の運用では「休憩をどの時間帯に取ったか」が重要ですが、
+        # まずはシンプルに「深夜時間帯の滞在割合」で概算します
+        return round(total_night_seconds / 3600, 2)
+
+    def get_overtime_hours(self):
+        """法定外残業時間（8時間を超えた分）を計算する"""
+        duration = float(self.get_duration()) # すでに実装済みの get_duration を利用
+        overtime = duration - 8.0
+        return round(max(0, overtime), 2)
 
 # --- ここまでモデル定義 ---
 

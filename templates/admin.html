@@ -38,34 +38,36 @@
                                     <th>ユーザーID</th>
                                     <th>名前</th>
                                     <th>設定時給</th>
-                                    <th>今月の合計時間</th>
+                                    <th>合計</th>
+                                    <th>残業</th> 
+                                    <th>深夜</th> 
                                     <th>概算給与</th>
                                     <th>操作</th>
                                 </tr>
                             </thead>
-                                <tbody>
-                                    {% for user in users %}
-                                    {% set stats = user.get_monthly_stats() %} {# ここで計算結果を変数に代入します #}
-                                    <tr>
-                                        <td>{{ user.id }}</td>
-                                        <td>{{ user.username }}</td>
-                                        <td>
-                                            <form action="{{ url_for('admin_update_rate', user_id=user.id) }}" method="POST" class="d-flex align-items-center">
+                            <tbody>
+                                {% for user in users %}
+                                {% set stats = user.get_monthly_stats() %}
+                                <tr>
+                                    <td>{{ user.id }}</td>
+                                    <td>{{ user.username }}</td>
+                                    <td>
+                                        <form action="{{ url_for('admin_update_rate', user_id=user.id) }}" method="POST" class="d-flex align-items-center">
                                             <div class="input-group input-group-sm" style="width: 150px;">
                                                 <input type="number" name="hourly_rate" class="form-control" value="{{ user.hourly_rate }}" min="0" required>
                                                 <span class="input-group-text">円</span>
                                                 <button class="btn btn-outline-success" type="submit">更新</button>
                                             </div>
-                                            </form>
-                                        </td>
-                                        <td>{{ stats.total_hours }} 時間</td>
-                                        <td>{{ "{:,}".format(stats.total_salary) }} 円</td>
-                                        <td>
-                                            <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">勤怠管理</a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
+                                        </form>
+                                    </td>
+                                    <td>{{ stats.total_hours }}h</td>
+                                    <td class="text-danger">{{ stats.overtime_hours }}h</td> <td class="text-primary">{{ stats.night_hours }}h</td>   <td class="fw-bold">{{ "{:,}".format(stats.total_salary) }} 円</td>
+                                    <td>
+                                        <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">勤怠管理</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
                         </table>
                     </div>
                 </div>
