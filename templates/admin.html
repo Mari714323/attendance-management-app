@@ -9,7 +9,10 @@
     <nav class="navbar navbar-dark bg-primary mb-4">
         <div class="container">
             <span class="navbar-brand">管理者専用パネル</span>
-            <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">トップへ戻る</a>
+            <div>
+                <a href="{{ url_for('admin_view_logs') }}" class="btn btn-outline-light btn-sm me-2">操作ログを確認</a>
+                <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">トップへ戻る</a>
+            </div>
         </div>
     </nav>
 

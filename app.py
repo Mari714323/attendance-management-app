@@ -24,32 +24,6 @@ class User(db.Model):
     def get_monthly_stats(self):
         from datetime import datetime
         now = datetime.now()
-        # 1. 今月の1日の日付を作成
-        first_day = datetime(now.year, now.month, 1).date()
-        
-        # 2. このユーザーの、今月の勤怠データをすべて取得
-        monthly_records = Attendance.query.filter(
-            Attendance.user_id == self.id,
-            Attendance.date >= first_day
-        ).all()
-        
-        total_hours = 0
-        for record in monthly_records:
-            if record.start_time and record.end_time:
-                duration = record.end_time - record.start_time
-                # 休憩時間を引いた秒数を加算していく
-                actual_seconds = duration.total_seconds() - (record.break_minutes * 60)
-                total_hours += max(0, actual_seconds) / 3600    
-        
-        # 3. 合計時間と、時給を掛けた概算給与を返す
-        total_salary = total_hours * self.hourly_rate
-        return {
-            'total_hours': f"{total_hours:.2f}",
-            'total_salary': int(total_salary) # 給与は整数で返す
-        }
-    def get_monthly_stats(self):
-        from datetime import datetime
-        now = datetime.now()
         first_day = datetime(now.year, now.month, 1).date()
         
         monthly_records = Attendance.query.filter(
@@ -151,6 +125,16 @@ class Attendance(db.Model):
         overtime = duration - 8.0
         return round(max(0, overtime), 2)
 
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # 誰が
+    action = db.Column(db.String(50), nullable=False)                         # 何を（編集/削除）
+    target_user_name = db.Column(db.String(50), nullable=False)               # 誰のデータを
+    description = db.Column(db.Text)                                          # 詳細（日付など）
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)               # いつ
+
+    # 操作した管理者の名前を取得するためのリレーション
+    admin = db.relationship('User', backref='logs')
 # --- ここまでモデル定義 ---
 
 app.secret_key = 'secretkey1234567' # セッションの暗号化に必要（適当な文字列でOK）
@@ -307,6 +291,13 @@ def admin_add_attendance(user_id):
             note=note
         )
         db.session.add(new_record)
+        log = AuditLog(
+            admin_id=session.get('user_id'),
+            action='追加',
+            target_user_name=User.query.get(user_id).username,
+            description=f"{date_str} の勤怠データを新規作成"
+        )
+        db.session.add(log)
         db.session.commit()
         flash('勤怠データを手動で追加しました')
         
@@ -363,7 +354,15 @@ def admin_update_attendance(attendance_id):
         record.break_minutes = break_minutes
         # 備考を更新
         record.note = note
-            
+        user = User.query.get(record.user_id)
+
+        log = AuditLog(
+            admin_id=session.get('user_id'),
+            action='編集',
+            target_user_name=user.username,
+            description=f"{record.date} の勤怠データを修正"
+        )
+        db.session.add(log)
         db.session.commit()
         flash('勤怠データを更新しました')
     except ValueError:
@@ -381,14 +380,21 @@ def admin_delete_attendance(attendance_id):
     
     # 2. 削除対象のデータを取得
     record = Attendance.query.get_or_404(attendance_id)
-    user_id = record.user_id # 削除後に戻るページを特定するために保存
-    
+    user_id = record.user_id
+    user = User.query.get(record.user_id) # 名前を取得しておく
+    log = AuditLog(
+        admin_id=session.get('user_id'),
+        action='削除',
+        target_user_name=user.username,
+        description=f"{record.date} の勤怠データを削除"
+    )
+    db.session.add(log)
+
     # 3. データベースから削除
     db.session.delete(record)
     db.session.commit()
     
     flash('勤怠データを削除しました')
-    
     # 元の従業員の勤怠一覧ページに戻る
     return redirect(url_for('admin_user_attendance', user_id=user_id))
 
@@ -461,6 +467,15 @@ def admin_export_csv():
     output.headers["Content-Disposition"] = f"attachment; filename={filename}"
     output.headers["Content-type"] = "text/csv"
     return output
+
+@app.route('/admin/logs')
+def admin_view_logs():
+    if 'user_id' not in session or session.get('role') != 'admin':
+        return redirect(url_for('login'))
+    
+    # 新しい順に100件取得
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(100).all()
+    return render_template('admin_logs.html', logs=logs)
 
 if __name__ == '__main__':
     # 実行時にデータベースとテーブルを自動作成する
