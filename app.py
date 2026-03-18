@@ -283,6 +283,10 @@ def admin_add_attendance(user_id):
         end_time = None
         if end_str:
             end_time = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
+            if end_time <= start_time:
+                flash('エラー：退勤時間は出勤時間より後の時刻を入力してください')
+                return redirect(url_for('admin_user_attendance', user_id=user_id))
+            
         
         # 新しい勤怠レコードを作成して保存
         new_record = Attendance(
@@ -344,21 +348,27 @@ def admin_update_attendance(attendance_id):
     note = request.form.get('note', '')
     
     try:
-        # 既存のレコードの値を上書きする
-        record.date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        record.start_time = datetime.strptime(f"{date_str} {start_str}", '%Y-%m-%d %H:%M')
+        # 一旦、変数（new_start, new_endなど）に変換結果を入れます
+        new_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        new_start = datetime.strptime(f"{date_str} {start_str}", '%Y-%m-%d %H:%M')
         
+        new_end = None
         if end_str:
-            record.end_time = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
-        else:
-            record.end_time = None # 退勤が空の場合はNone（未打刻状態）にする
-
-        # 休憩時間を更新
+            new_end = datetime.strptime(f"{date_str} {end_str}", '%Y-%m-%d %H:%M')
+            # --- ここでバリデーションチェック！ ---
+            if new_end <= new_start:
+                flash('エラー：退勤時間は出勤時間より後の時刻を入力してください')
+                return redirect(url_for('admin_edit_attendance', attendance_id=attendance_id))
+        
+        # チェックを通過したら、レコード（DBのデータ）を更新する
+        record.date = new_date
+        record.start_time = new_start
+        record.end_time = new_end
         record.break_minutes = break_minutes
-        # 備考を更新
         record.note = note
-        user = User.query.get(record.user_id)
 
+        # ログの記録
+        user = User.query.get(record.user_id)
         log = AuditLog(
             admin_id=session.get('user_id'),
             action='編集',
@@ -368,12 +378,11 @@ def admin_update_attendance(attendance_id):
         db.session.add(log)
         db.session.commit()
         flash('勤怠データを更新しました')
+
     except ValueError:
         flash('日時の形式が正しくありません')
         
-    # 修正が終わったら、その従業員の勤怠一覧ページに戻る
     return redirect(url_for('admin_user_attendance', user_id=record.user_id))
-
 # app.py に追加
 @app.route('/admin/attendance/delete/<int:attendance_id>', methods=['POST'])
 def admin_delete_attendance(attendance_id):
