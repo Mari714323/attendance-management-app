@@ -3,6 +3,7 @@ import io
 from flask import Flask, render_template, request, redirect, url_for, session, flash, make_response
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
@@ -208,9 +209,11 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        user = User.query.filter_by(username=username, password=password).first()
+        # 1. まずユーザー名で検索
+        user = User.query.filter_by(username=username).first()
         
-        if user:
+        # 2. ユーザーが存在し、かつハッシュ化されたパスワードが正しいかチェック
+        if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
