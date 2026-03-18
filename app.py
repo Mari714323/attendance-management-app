@@ -452,7 +452,7 @@ def admin_export_csv():
 
     si = io.StringIO()
     cw = csv.writer(si)
-    cw.writerow(['ユーザー名', '日付', '出勤時刻', '退勤時刻', '休憩(分)', '勤務時間'])
+    cw.writerow(['ユーザー名', '日付', '出勤時刻', '退勤時刻', '休憩(分)', '勤務時間', '残業時間', '深夜時間'])
 
     for record in attendances:
         user = User.query.get(record.user_id)
@@ -462,7 +462,9 @@ def admin_export_csv():
             record.start_time.strftime('%H:%M') if record.start_time else '',
             record.end_time.strftime('%H:%M') if record.end_time else '',
             record.break_minutes,
-            record.get_duration()
+            record.get_duration(),
+            record.get_overtime_hours(), # 追加
+            record.get_night_shift_hours() # 追加
         ])
 
     filename = f"attendance_{target_month if target_month else 'all'}.csv"
