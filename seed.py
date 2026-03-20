@@ -1,4 +1,5 @@
-from app import app, db, User
+from app import app
+from models import db, User
 from werkzeug.security import generate_password_hash # 追加
 
 with app.app_context():

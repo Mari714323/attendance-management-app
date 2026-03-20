@@ -9,7 +9,7 @@
     <nav class="navbar navbar-dark bg-primary mb-4">
         <div class="container">
             <span class="navbar-brand">{{ user.username }} さんの勤怠修正</span>
-            <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-outline-light btn-sm">戻る</a>
+            <a href="{{ url_for('admin.user_attendance', user_id=user.id) }}" class="btn btn-outline-light btn-sm">戻る</a>
         </div>
     </nav>
 
@@ -21,7 +21,7 @@
                         <h5 class="mb-0">勤怠データの編集</h5>
                     </div>
                     <div class="card-body">
-                        <form action="{{ url_for('admin_update_attendance', attendance_id=record.id) }}" method="POST">
+                        <form action="{{ url_for('admin.update_attendance', attendance_id=record.id) }}" method="POST">
                             <div class="mb-3">
                                 <label class="form-label">日付</label>
                                 <input type="date" name="date" class="form-control" value="{{ record.date.isoformat() }}" required>
@@ -44,7 +44,7 @@
                             </div>
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">更新する</button>
-                                <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-secondary">キャンセル</a>
+                                <a href="{{ url_for('admin.user_attendance', user_id=user.id) }}" class="btn btn-secondary">キャンセル</a>
                             </div>
                         </form>
                     </div>

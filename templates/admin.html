@@ -10,8 +10,8 @@
         <div class="container">
             <span class="navbar-brand">管理者専用パネル</span>
             <div>
-                <a href="{{ url_for('admin_view_logs') }}" class="btn btn-outline-light btn-sm me-2">操作ログを確認</a>
-                <a href="{{ url_for('index') }}" class="btn btn-outline-light btn-sm">トップへ戻る</a>
+                <a href="{{ url_for('admin.view_logs') }}" class="btn btn-outline-light btn-sm me-2">操作ログを確認</a>
+                <a href="{{ url_for('staff.index') }}" class="btn btn-outline-light btn-sm">トップへ戻る</a>
             </div>
         </div>
     </nav>
@@ -55,7 +55,7 @@
                                     <td>{{ user.id }}</td>
                                     <td>{{ user.username }}</td>
                                     <td>
-                                        <form action="{{ url_for('admin_update_rate', user_id=user.id) }}" method="POST" class="d-flex align-items-center">
+                                        <form action="{{ url_for('admin.update_rate', user_id=user.id) }}" method="POST" class="d-flex align-items-center">
                                             <div class="input-group input-group-sm" style="width: 150px;">
                                                 <input type="number" name="hourly_rate" class="form-control" value="{{ user.hourly_rate }}" min="0" required>
                                                 <span class="input-group-text">円</span>
@@ -66,7 +66,7 @@
                                     <td>{{ stats.total_hours }}h</td>
                                     <td class="text-danger">{{ stats.overtime_hours }}h</td> <td class="text-primary">{{ stats.night_hours }}h</td>   <td class="fw-bold">{{ "{:,}".format(stats.total_salary) }} 円</td>
                                     <td>
-                                        <a href="{{ url_for('admin_user_attendance', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">勤怠管理</a>
+                                        <a href="{{ url_for('admin.user_attendance', user_id=user.id) }}" class="btn btn-sm btn-outline-primary">勤怠管理</a>
                                     </td>
                                 </tr>
                                 {% endfor %}
