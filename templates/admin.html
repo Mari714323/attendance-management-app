@@ -3,15 +3,29 @@
 {% block title %}管理者パネル - 勤怠管理システム{% endblock %}
 
 {% block content %}
+{# 1. 全体統計グラフエリア #}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white py-3">
+                <h6 class="mb-0 fw-bold text-primary">組織全体の稼働状況（直近7日間）</h6>
+            </div>
+            <div class="card-body">
+                <canvas id="adminStatsChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# 2. 従業員一覧テーブルエリア #}
 <div class="row">
     <div class="col-md-12">
         <div class="card shadow-sm">
             <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
                 <h5 class="mb-0 fw-bold">従業員一覧・給与計算（今月）</h5>
-                {# 管理者ログへのリンクをここに配置 #}
                 <a href="{{ url_for('admin.view_logs') }}" class="btn btn-outline-secondary btn-sm">操作ログを確認</a>
             </div>
-
+            
             <div class="card-body">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle">
@@ -58,4 +72,32 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('adminStatsChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'line', 
+        data: {
+            labels: {{ labels | tojson }},
+            datasets: [{
+                label: '全従業員の合計労働時間 (h)',
+                data: {{ daily_totals | tojson }},
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                borderColor: 'rgba(13, 110, 253, 1)',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
 {% endblock %}

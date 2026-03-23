@@ -14,12 +14,34 @@ def check_admin():
         return False
     return True
 
+# routes/admin.py の dashboard 関数を修正
 @admin_bp.route('/')
 def dashboard():
     if not check_admin():
-        return redirect(url_for('login')) # ※ログイン機能移動後は 'auth.login' になります
+        return redirect(url_for('auth.login'))
+    
     users = User.query.filter(User.role != 'admin').all()
-    return render_template('admin.html', users=users)
+    
+    # --- 統計用データの作成 (全従業員の合計労働時間 - 直近7日間) ---
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    labels = []
+    daily_totals = []
+    
+    for i in range(6, -1, -1):
+        target_date = today - timedelta(days=i)
+        labels.append(target_date.strftime('%m/%d'))
+        
+        # その日の全従業員の勤怠レコードを取得
+        records = Attendance.query.filter_by(date=target_date).all()
+        # 全員の勤務時間を合計
+        total_day_hours = sum(float(r.get_duration()) for r in records)
+        daily_totals.append(round(total_day_hours, 2))
+        
+    return render_template('admin.html', 
+                           users=users, 
+                           labels=labels, 
+                           daily_totals=daily_totals)
 
 @admin_bp.route('/attendance/<int:user_id>')
 def user_attendance(user_id):
