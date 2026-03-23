@@ -13,9 +13,10 @@
             <a class="navbar-brand" href="{{ url_for('staff.index') }}">勤怠管理システム</a>
             {% if session.get('user_id') %}
             <div class="d-flex align-items-center">
-                <span class="navbar-text me-3">
-                    {{ session.get('username') }} さん（{{ '管理者' if session.get('role') == 'admin' else '従業員' }}）
+                <span class="navbar-text me-3 text-light">
+                    {{ session.get('username') }} さん
                 </span>
+                <a href="{{ url_for('auth.change_password') }}" class="btn btn-outline-light btn-sm me-2">パスワード変更</a>
                 <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">ログアウト</a>
             </div>
             {% endif %}
