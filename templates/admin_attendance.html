@@ -1,40 +1,23 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ user.username }} さんの勤怠管理 - 勤怠管理システム</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-primary mb-4">
-        <div class="container">
-            <span class="navbar-brand">{{ user.username }} さんの勤怠管理</span>
-            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-light btn-sm">管理者パネルへ戻る</a>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3>勤務履歴一覧</h3>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addModal">
+{% block title %}{{ user.username }} さんの勤怠管理 - 勤怠管理システム{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold">{{ user.username }} さんの勤務履歴</h3>
+        <div>
+            <button class="btn btn-success shadow-sm" data-bs-toggle="modal" data-bs-target="#addModal">
                 新規勤怠データ追加
             </button>
+            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-secondary shadow-sm">戻る</a>
         </div>
+    </div>
 
-        <div class="card shadow-sm">
-            <div class="card-body">
-                {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                        {% for message in messages %}
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                <table class="table table-hover">
-                    <thead>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>日付</th>
                             <th>出勤</th>
@@ -42,7 +25,7 @@
                             <th>休憩</th>
                             <th>勤務時間</th>
                             <th>備考</th>
-                            <th>操作</th>
+                            <th class="text-center">操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -51,21 +34,16 @@
                             <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
                             <td>
                                 {{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}
-                                {# 遅刻・早退の判定を表示 #}
                                 {% for status in record.get_status() %}
-                                    {% if status == '遅刻' %}
-                                        <span class="badge bg-danger">遅刻</span>
-                                    {% elif status == '早退' %}
-                                        <span class="badge bg-warning text-dark">早退</span>
-                                    {% endif %}
+                                    <span class="badge {{ 'bg-danger' if status == '遅刻' else 'bg-warning text-dark' }}">{{ status }}</span>
                                 {% endfor %}
                             </td>
                             <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
                             <td>{{ record.break_minutes }} 分</td>
                             <td>{{ record.get_duration() }} 時間</td>
                             <td class="small">{{ record.note if record.note else '' }}</td>
-                            <td>
-                                <a href="{{ url_for('admin.edit_attendance', attendance_id=record.id) }}" class="btn btn-sm btn-outline-secondary">編集</a>
+                            <td class="text-center">
+                                <a href="{{ url_for('admin.edit_attendance', attendance_id=record.id) }}" class="btn btn-sm btn-outline-primary">編集</a>
                                 <form action="{{ url_for('admin.delete_attendance', attendance_id=record.id) }}" method="POST" style="display:inline;" onsubmit="return confirm('このデータを本当に削除しますか？');">
                                     <button type="submit" class="btn btn-sm btn-outline-danger">削除</button>
                                 </form>
@@ -73,7 +51,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center text-muted">勤怠データがありません</td>
+                            <td colspan="7" class="text-center text-muted py-4">勤怠データがありません</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -81,12 +59,14 @@
             </div>
         </div>
     </div>
+
+    {# 新規追加用モーダル #}
     <div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <form action="{{ url_for('admin.add_attendance', user_id=user.id) }}" method="POST">
                     <div class="modal-header">
-                        <h5 class="modal-title">新規勤怠データの追加</h5>
+                        <h5 class="modal-title fw-bold">新規勤怠データの追加</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
@@ -94,18 +74,19 @@
                             <label class="form-label">日付</label>
                             <input type="date" name="date" class="form-control" required>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">出勤時間</label>
-                            <input type="time" name="start_time" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">退勤時間</label>
-                            <input type="time" name="end_time" class="form-control">
+                        <div class="row">
+                            <div class="col-6 mb-3">
+                                <label class="form-label">出勤時間</label>
+                                <input type="time" name="start_time" class="form-control" required>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <label class="form-label">退勤時間</label>
+                                <input type="time" name="end_time" class="form-control">
+                            </div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">休憩時間（分）</label>
                             <input type="number" name="break_minutes" class="form-control" value="0" min="0">
-                            <div class="form-text">休憩がない場合は0を入力してください</div>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">備考</label>
@@ -120,6 +101,4 @@
             </div>
         </div>
     </div>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+{% endblock %}

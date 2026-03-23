@@ -1,162 +1,136 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>勤怠管理システム - ダッシュボード</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <nav class="navbar navbar-dark bg-dark mb-4">
-        <div class="container">
-            <span class="navbar-brand">勤怠管理システム</span>
-            <div class="d-flex">
-                <span class="navbar-text me-3">{{ username }} さん（{{ '管理者' if role == 'admin' else '従業員' }}）</span>
-                {# 修正: logout -> auth.logout #}
-                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-light btn-sm">ログアウト</a>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container">
-        {% if role == 'admin' %}
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card border-primary shadow-sm">
-                    <div class="card-header bg-primary text-white">管理者メニュー</div>
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                {# 修正: admin_dashboard -> admin.dashboard #}
-                                <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">従業員一覧・給与計算</a>
-                            </div>
-                            <div class="col-md-6 border-start">
-                                {# 修正: admin_export_csv -> admin.export_csv #}
-                                <form action="{{ url_for('admin.export_csv') }}" method="GET" class="d-flex align-items-center gap-2">
-                                    <label class="small text-muted text-nowrap">月を指定して出力:</label>
-                                    <input type="month" name="month" class="form-control form-control-sm" required>
-                                    <button type="submit" class="btn btn-primary btn-sm text-nowrap">CSV出力</button>
-                                </form>
-                            </div>
+{% block title %}ダッシュボード - 勤怠管理システム{% endblock %}
+
+{% block content %}
+    {# 管理者メニュー (管理者の場合のみ表示) #}
+    {% if role == 'admin' %}
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-primary shadow-sm">
+                <div class="card-header bg-primary text-white">管理者メニュー</div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline-primary">従業員一覧・給与計算</a>
+                        </div>
+                        <div class="col-md-6 border-start">
+                            <form action="{{ url_for('admin.export_csv') }}" method="GET" class="d-flex align-items-center gap-2">
+                                <label class="small text-muted text-nowrap">月を指定して出力:</label>
+                                <input type="month" name="month" class="form-control form-control-sm" required>
+                                <button type="submit" class="btn btn-primary btn-sm text-nowrap">CSV出力</button>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+    {% endif %}
+
+    {# 本日の状況表示 #}
+    <div class="mb-4 bg-white p-3 rounded shadow-sm border text-center">
+        {% if attendance %}
+            <div class="row">
+                <div class="col">
+                    <p class="text-muted mb-1 small">出勤時刻</p>
+                    <h5 class="fw-bold text-success">
+                        {{ attendance.start_time.strftime('%H:%M') if attendance.start_time else '--:--' }}
+                    </h5>
+                </div>
+                <div class="col border-start">
+                    <p class="text-muted mb-1 small">退勤時刻</p>
+                    <h5 class="fw-bold text-danger">
+                        {{ attendance.end_time.strftime('%H:%M') if attendance.end_time else '--:--' }}
+                    </h5>
+                </div>
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">本日の打刻記録はありません</p>
         {% endif %}
+    </div>
 
-        {# 本日の状況表示 #}
-        <div class="mb-4 bg-white p-3 rounded shadow-sm border text-center">
-            {% if attendance %}
-                <div class="row">
-                    <div class="col">
-                        <p class="text-muted mb-1 small">出勤時刻</p>
-                        <h5 class="fw-bold text-success">
-                            {{ attendance.start_time.strftime('%H:%M') if attendance.start_time else '--:--' }}
-                        </h5>
-                    </div>
-                    <div class="col border-start">
-                        <p class="text-muted mb-1 small">退勤時刻</p>
-                        <h5 class="fw-bold text-danger">
-                            {{ attendance.end_time.strftime('%H:%M') if attendance.end_time else '--:--' }}
-                        </h5>
-                    </div>
+    {# グラフ表示エリア #}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h6 class="mb-0 fw-bold">直近1週間の労働時間推移</h6>
                 </div>
-            {% else %}
-                <p class="text-muted mb-0">本日の打刻記録はありません</p>
-            {% endif %}
+                <div class="card-body">
+                    <canvas id="workChart" height="80"></canvas>
+                </div>
+            </div>
         </div>
+    </div>
 
-        {# グラフ表示エリア #}
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-white py-3">
-                        <h6 class="mb-0 fw-bold">直近1週間の労働時間推移</h6>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="workChart" height="80"></canvas>
+    {# 打刻ボタンエリア #}
+    <div class="row mb-4">
+        <div class="col-md-6 offset-md-3">
+            <div class="card shadow-sm border-0">
+                <div class="card-body text-center p-4">
+                    <h4 class="mb-4 fw-bold">本日の打刻</h4>
+                    <div class="d-grid gap-3">
+                        <form action="{{ url_for('staff.punch') }}" method="POST">
+                            <input type="hidden" name="action" value="in">
+                            <button type="submit" class="btn btn-success btn-lg py-3 w-100 mb-2 shadow-sm">出勤</button>
+                        </form>
+                        <form action="{{ url_for('staff.punch') }}" method="POST">
+                            <input type="hidden" name="action" value="out">
+                            <button type="submit" class="btn btn-danger btn-lg py-3 w-100 shadow-sm">退勤</button>
+                        </form>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        {# 打刻ボタンエリア #}
-        <div class="row mb-4">
-            <div class="col-md-6 offset-md-3">
-                <div class="card shadow-sm border-0">
-                    <div class="card-body text-center p-4">
-                        <h4 class="mb-4 fw-bold">本日の打刻</h4>
-                        
-                        {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for message in messages %}
-                            <div class="alert alert-info py-2 small">{{ message }}</div>
-                            {% endfor %}
-                        {% endif %}
-                        {% endwith %}
-
-                        <div class="d-grid gap-3">
-                            {# 修正: punch -> staff.punch #}
-                            <form action="{{ url_for('staff.punch') }}" method="POST">
-                                <input type="hidden" name="action" value="in">
-                                <button type="submit" class="btn btn-success btn-lg py-3 w-100 mb-2 shadow-sm">出勤</button>
-                            </form>
-                            
-                            <form action="{{ url_for('staff.punch') }}" method="POST">
-                                <input type="hidden" name="action" value="out">
-                                <button type="submit" class="btn btn-danger btn-lg py-3 w-100 shadow-sm">退勤</button>
-                            </form>
-                        </div>
+    {# 勤務履歴テーブル #}
+    <div class="row mt-5 pb-5">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white py-3">
+                    <h5 class="mb-0">勤務履歴</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>日付</th>
+                                    <th>出勤</th>
+                                    <th>退勤</th>
+                                    <th>休憩</th>
+                                    <th>勤務時間</th>
+                                    <th>備考</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for record in history %}
+                                <tr>
+                                    <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
+                                    <td>
+                                        {{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}
+                                        {% for status in record.get_status() %}
+                                            <span class="badge {{ 'bg-danger' if status == '遅刻' else 'bg-warning text-dark' }}">{{ status }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
+                                    <td>{{ record.break_minutes }} 分</td>
+                                    <td>{{ record.get_duration() }} 時間</td>
+                                    <td class="small">{{ record.note if record.note else '' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
+{% endblock %}
 
-        {# 勤務履歴テーブル #}
-        <div class="row mt-5 pb-5">
-            <div class="col-12">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-secondary text-white py-3">
-                        <h5 class="mb-0">勤務履歴</h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover mb-0">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>日付</th>
-                                        <th>出勤</th>
-                                        <th>退勤</th>
-                                        <th>休憩</th>
-                                        <th>勤務時間</th>
-                                        <th>備考</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for record in history %}
-                                    <tr>
-                                        <td>{{ record.date.strftime('%Y/%m/%d') }}</td>
-                                        <td>
-                                            {{ record.start_time.strftime('%H:%M') if record.start_time else '--:--' }}
-                                            {% for status in record.get_status() %}
-                                                <span class="badge {{ 'bg-danger' if status == '遅刻' else 'bg-warning text-dark' }}">{{ status }}</span>
-                                            {% endfor %}
-                                        </td>
-                                        <td>{{ record.end_time.strftime('%H:%M') if record.end_time else '--:--' }}</td>
-                                        <td>{{ record.break_minutes }} 分</td>
-                                        <td>{{ record.get_duration() }} 時間</td>
-                                        <td class="small">{{ record.note if record.note else '' }}</td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div> {# グラフ描画用スクリプト #}
+{% block extra_js %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const ctx = document.getElementById('workChart').getContext('2d');
@@ -184,5 +158,4 @@
             }
         });
     </script>
-</body>
-</html>
+{% endblock %}
